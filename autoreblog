@@ -6,7 +6,7 @@ use Encode;
 use utf8;
 use Config::Pit;
 use WWW::Mechanize;
-
+use feature qw( say );
 
 my $pit_account = 'news.azwad.com';
 
@@ -47,7 +47,7 @@ for ($offset = 0; $offset <= $max ; $offset += $num){
 			next;
 		}else {
 			my @urls =();
-			for (my ($number, $url) = each %$deduped){
+			while (my ($number, $url) = each %$deduped){
 				push(@urls,$url);
 			}
 			my $date = $values->{date};
@@ -56,9 +56,11 @@ for ($offset = 0; $offset <= $max ; $offset += $num){
 			s/<a href="(http.+?)".*>(.+?)<\/a>/$1,$2/ ;
 			my $title = $2 ;
 			my $link =  $1 || $values->{'photo-link-url'} || $values->{'url'};
+#			$link =~ s/\;.*?$//;
 			my $from = $values->{tumblelog}[0];
 			print $title." : ".$link ."\n";
-			if ( grep{ $_ eq $link } @urls){
+			if ( grep{	my $var = $_;
+									$var =~ /^$link/ || $link =~ /^$var/ } @urls){
 				print "match listed url\n";
 				next;
 			}else{
@@ -68,7 +70,7 @@ for ($offset = 0; $offset <= $max ; $offset += $num){
 				utf8::is_utf8($text)?encode('utf-8', $text):$text;
 				my $reblog_key = $values->{'reblog-key'};
 				my $note_count = $values->{'note-count'};
-				print $fh3 $post." : ".$from ." : " .$publish_type." : ". $reblog_key ." : ". $note_count . " : " .$title."\n";
+				print $fh3 $post." : ".$from ." : " .$publish_type." : ". $link ." : ". $note_count . " : " .$title;
 				print $fh2 $title." : ".$link."\n";
 				print $fh2 $date." : ".$publish_type."\n";
 				print $fh2 $reblog_key. " : ". $note_count. "\n";
@@ -78,9 +80,11 @@ for ($offset = 0; $offset <= $max ; $offset += $num){
 				if (decide_post($post, $from, $reblog_key, $note_count, $text, $link, $publish_type)){
 					print "reblog this post\n";
 					reblog($post, $reblog_key, $link) ;
+					print $fh3 " : rebloged\n";
 					sleep $delay_time1;
 				}else{
 					print "don't reblog\n";
+					print $fh3 "\n";
 					next;
 				}
 			}
